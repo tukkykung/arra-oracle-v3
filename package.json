@@ -27,7 +27,7 @@
     "server:ensure": "bun src/ensure-server.ts",
     "server:status": "bun src/ensure-server.ts --status",
     "serve": "bun dist/server.js",
-    "index": "bun src/indexer.ts",
+    "index": "bun src/indexer/cli.ts",
     "build": "tsc --noEmit",
     "start": "bun dist/index.js",
     "test": "bun run test:unit && bun run test:integration",
