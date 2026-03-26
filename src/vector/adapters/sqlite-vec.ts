@@ -10,9 +10,22 @@
 import { Database } from 'bun:sqlite';
 import type { VectorStoreAdapter, VectorDocument, VectorQueryResult, EmbeddingProvider } from '../types.ts';
 
-/** Convert number[] to Float32Array binary blob for sqlite-vec */
-function toBlob(vec: number[]): Buffer {
-  return Buffer.from(new Float32Array(vec).buffer);
+// macOS ships Apple SQLite which disables loadExtension.
+// Auto-detect Homebrew SQLite and use it via setCustomSQLite.
+if (process.platform === 'darwin') {
+  try {
+    const { execSync } = require('child_process');
+    const sqlitePath = execSync('ls /opt/homebrew/Cellar/sqlite/*/lib/libsqlite3.dylib 2>/dev/null')
+      .toString().trim().split('\n').pop();
+    if (sqlitePath) {
+      Database.setCustomSQLite(sqlitePath);
+    }
+  } catch { /* Homebrew sqlite not installed — loadExtension will fail gracefully later */ }
+}
+
+/** Convert number[] to Uint8Array blob for sqlite-vec (bun:sqlite requires Uint8Array, not ArrayBuffer) */
+function toBlob(vec: number[]): Uint8Array {
+  return new Uint8Array(new Float32Array(vec).buffer);
 }
 
 /** Convert sqlite-vec binary blob back to number[] */
