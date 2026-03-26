@@ -1224,6 +1224,37 @@ app.post('/api/learn', async (c) => {
 });
 
 // ============================================================================
+// Resonance Routes — Oracle identity files from ψ/memory/resonance/
+// ============================================================================
+
+app.get('/api/resonance', async (c) => {
+  try {
+    const resonanceDir = path.join(REPO_ROOT, 'ψ', 'memory', 'resonance');
+    let files: string[] = [];
+    try {
+      files = fs.readdirSync(resonanceDir);
+    } catch { /* directory may not exist */ }
+
+    const mdFiles = files.filter(f => f.endsWith('.md'));
+    const oracles = mdFiles.map(file => {
+      const filePath = path.join(resonanceDir, file);
+      let content = '';
+      try { content = fs.readFileSync(filePath, 'utf-8'); } catch { /* skip */ }
+
+      const name = file.replace(/\.md$/, '');
+      const titleMatch = content.match(/^#{1,2}\s+(.+)/m);
+      const displayName = titleMatch ? titleMatch[1].trim() : name;
+
+      return { name, displayName, file, content };
+    });
+
+    return c.json({ oracles, total: oracles.length });
+  } catch (err) {
+    return c.json({ error: String(err) }, 500);
+  }
+});
+
+// ============================================================================
 // Start Server
 // ============================================================================
 
