@@ -16,6 +16,7 @@ const navItems = [
   { path: '/activity?tab=searches', label: 'Activity' },
   { divider: true },
   { path: '/forum', label: 'Forum' },
+  { path: '/oracles', label: 'Oracles' },
 ] as const;
 
 // Dropdown items (Tools)

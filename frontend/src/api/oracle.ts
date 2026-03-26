@@ -241,6 +241,19 @@ export async function getSettings(): Promise<Settings> {
   return res.json();
 }
 
+// Resonance (Oracle identity files)
+export interface ResonanceOracle {
+  name: string;
+  displayName: string;
+  file: string;
+  content: string;
+}
+
+export async function getResonance(): Promise<{ oracles: ResonanceOracle[]; total: number }> {
+  const res = await fetch(`${API_BASE}/resonance`);
+  return res.json();
+}
+
 // Update settings
 export interface UpdateSettingsParams {
   currentPassword?: string;
