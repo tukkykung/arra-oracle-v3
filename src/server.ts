@@ -33,6 +33,7 @@ import { registerTraceRoutes } from './routes/traces.ts';
 import { registerKnowledgeRoutes } from './routes/knowledge.ts';
 import { registerSupersedeRoutes } from './routes/supersede.ts';
 import { registerFileRoutes } from './routes/files.ts';
+import { registerResonanceRoutes } from './routes/resonance.ts';
 
 // Reset stale indexing status on startup using Drizzle
 try {
@@ -104,6 +105,7 @@ registerTraceRoutes(app);
 registerKnowledgeRoutes(app);
 registerSupersedeRoutes(app);
 registerFileRoutes(app);
+registerResonanceRoutes(app);
 
 // Startup banner
 console.log(`
