@@ -11,16 +11,32 @@ import { Database } from 'bun:sqlite';
 import type { VectorStoreAdapter, VectorDocument, VectorQueryResult, EmbeddingProvider } from '../types.ts';
 
 // macOS ships Apple SQLite which disables loadExtension.
-// Auto-detect Homebrew SQLite and use it via setCustomSQLite.
+// MCP stdio transport strips env vars (DYLD_LIBRARY_PATH etc.), so we must
+// use absolute paths directly — no shell globbing or env-dependent resolution.
 if (process.platform === 'darwin') {
-  try {
-    const { execSync } = require('child_process');
-    const sqlitePath = execSync('ls /opt/homebrew/Cellar/sqlite/*/lib/libsqlite3.dylib 2>/dev/null')
-      .toString().trim().split('\n').pop();
-    if (sqlitePath) {
-      Database.setCustomSQLite(sqlitePath);
-    }
-  } catch { /* Homebrew sqlite not installed — loadExtension will fail gracefully later */ }
+  const fs = require('fs');
+
+  // Well-known Homebrew SQLite paths (ARM M-series + Intel)
+  const candidates = [
+    '/opt/homebrew/opt/sqlite/lib/libsqlite3.dylib', // ARM (M1/M2/M3) — stable symlink
+    '/usr/local/opt/sqlite/lib/libsqlite3.dylib',    // Intel Mac — stable symlink
+  ];
+
+  let resolved = false;
+  for (const candidate of candidates) {
+    try {
+      if (fs.existsSync(candidate)) {
+        Database.setCustomSQLite(candidate);
+        console.log(`[sqlite-vec] setCustomSQLite: ${candidate}`);
+        resolved = true;
+        break;
+      }
+    } catch { /* path not accessible */ }
+  }
+
+  if (!resolved) {
+    console.warn('[sqlite-vec] No Homebrew SQLite found — Apple SQLite may block loadExtension');
+  }
 }
 
 /** Convert number[] to Uint8Array blob for sqlite-vec (bun:sqlite requires Uint8Array, not ArrayBuffer) */
