@@ -1,11 +1,31 @@
 /**
  * Database backup before destructive operations
- * Philosophy: "Nothing is Deleted" - always preserve data
+ * Philosophy: "Nothing is Deleted" - but we rotate to prevent disk full
  */
 
 import fs from 'fs';
+import path from 'path';
 import { Database } from 'bun:sqlite';
 import type { IndexerConfig } from '../types.ts';
+
+const MAX_BACKUPS = 3;
+
+/**
+ * Remove old backup/export files, keeping only the most recent MAX_BACKUPS
+ */
+function rotateFiles(dbPath: string, suffix: string): void {
+  const dir = path.dirname(dbPath);
+  const base = path.basename(dbPath);
+  try {
+    const files = fs.readdirSync(dir)
+      .filter(f => f.startsWith(base + suffix))
+      .sort()
+      .reverse();
+    for (const f of files.slice(MAX_BACKUPS)) {
+      fs.unlinkSync(path.join(dir, f));
+    }
+  } catch (_) { /* ignore rotation errors */ }
+}
 
 /**
  * Backup database before destructive operations
@@ -14,6 +34,8 @@ import type { IndexerConfig } from '../types.ts';
  * 1. SQLite file backup (.backup-TIMESTAMP)
  * 2. JSON export (.export-TIMESTAMP.json) for portability
  * 3. CSV export (.export-TIMESTAMP.csv) for DuckDB/analytics
+ *
+ * Automatically rotates old backups, keeping only the 3 most recent.
  */
 export function backupDatabase(sqlite: Database, config: IndexerConfig): void {
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
@@ -28,6 +50,10 @@ export function backupDatabase(sqlite: Database, config: IndexerConfig): void {
   } catch (e) {
     console.warn(`\u26a0\ufe0f DB backup failed: ${e instanceof Error ? e.message : e}`);
   }
+
+  // Rotate old backups
+  rotateFiles(config.dbPath, '.backup-');
+  rotateFiles(config.dbPath, '.export-');  // covers both .json and .csv
 
   // Query all documents for export
   let docs: any[] = [];
